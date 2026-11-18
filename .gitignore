@@ -1,0 +1,19 @@
+# Rust build artifacts
+/target/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+infrastructure/agent/.env
+
+# Logs
+*.log
+
+# OS and editor files
+.DS_Store
+.vscode/
+.idea/
+
+# Temporary Dioxus project
+/netquorra-desktop-temp/

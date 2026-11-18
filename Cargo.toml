@@ -1,0 +1,20 @@
+[workspace]
+resolver = "2"
+
+members = [
+    "apps/desktop",
+    "apps/web",
+    "apps/mobile",
+    "packages/ui",
+    "services/network-engine",
+    "services/network-agent",
+]
+default-members = [
+    "apps/desktop",
+    "apps/web",
+]
+
+[workspace.dependencies]
+dioxus = { version = "0.7", features = ["router"] }
+ui = { path = "packages/ui" }
+
