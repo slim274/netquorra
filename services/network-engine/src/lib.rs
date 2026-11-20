@@ -129,6 +129,7 @@ pub async fn scan_network_with_options(
     Ok(discovered)
 }
 
+pub mod snmp;
 /// Performs detailed discovery and classifies responsive devices.
 pub async fn scan_network_detailed(cidr: &str) -> Result<Vec<DiscoveredDevice>, DiscoveryError> {
     let discovered_ips = scan_network(cidr).await?;
