@@ -58,7 +58,7 @@ pub struct DiscoveredDevice {
 }
 
 /// Configuration for detailed network and optional SNMP discovery.
-#[derive(Debug, Clone)]
+#[derive(Clone)]
 pub struct DiscoveryOptions {
     pub concurrency: usize,
     pub probe_timeout: Duration,
