@@ -1,7 +1,7 @@
 use async_snmp::{oid, Oid, UdpClient};
 
 /// Standard SNMP system information.
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
 pub struct SnmpSystemInfo {
     pub description: Option<String>,
     pub object_id: Option<String>,
