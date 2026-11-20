@@ -20,11 +20,8 @@ use std::{net::IpAddr, process::Stdio, str::FromStr, sync::Arc, time::Duration};
 use tokio::{process::Command, sync::Semaphore, task::JoinSet, time::timeout};
 
 use snmp::{
-    client::SnmpClientConfig,
-    credentials::SnmpCredentials,
-    discovery::discover_device,
-    interfaces::SnmpInterface,
-    system::SnmpSystemInfo,
+    client::SnmpClientConfig, credentials::SnmpCredentials, discovery::discover_device,
+    interfaces::SnmpInterface, system::SnmpSystemInfo,
 };
 
 const MAX_SCAN_ADDRESSES: usize = 4096;
@@ -177,12 +174,8 @@ pub async fn scan_network_detailed_with_options(
     cidr: &str,
     options: DiscoveryOptions,
 ) -> Result<Vec<DiscoveredDevice>, DiscoveryError> {
-    let discovered_ips = scan_network_with_options(
-        cidr,
-        options.concurrency,
-        options.probe_timeout,
-    )
-    .await?;
+    let discovered_ips =
+        scan_network_with_options(cidr, options.concurrency, options.probe_timeout).await?;
 
     let default_gateway = lookup_default_gateway().await;
     let mut tasks = JoinSet::new();
@@ -215,18 +208,17 @@ pub async fn scan_network_detailed_with_options(
             );
 
             let snmp_detected = snmp_result.as_ref().is_some_and(|result| result.detected);
-            let snmp_version = snmp_result.as_ref().and_then(|result| result.version.clone());
+            let snmp_version = snmp_result
+                .as_ref()
+                .and_then(|result| result.version.clone());
             let snmp_system = snmp_result.as_ref().map(|result| result.system.clone());
             let snmp_interfaces = snmp_result
                 .as_ref()
                 .map(|result| result.interfaces.clone())
                 .unwrap_or_default();
 
-            let hostname = reverse_hostname.or_else(|| {
-                snmp_system
-                    .as_ref()
-                    .and_then(|system| system.name.clone())
-            });
+            let hostname = reverse_hostname
+                .or_else(|| snmp_system.as_ref().and_then(|system| system.name.clone()));
 
             let mac_address_type = mac_address.as_deref().map(classify_mac);
             let manufacturer = match mac_address.as_deref() {
