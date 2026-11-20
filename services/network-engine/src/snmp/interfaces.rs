@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use async_snmp::{oid, Oid, UdpClient, Value, VarBind};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, serde::Serialize)]
 pub struct SnmpInterface {
     pub index: u32,
     pub name: Option<String>,
