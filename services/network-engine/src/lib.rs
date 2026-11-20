@@ -1,5 +1,6 @@
 pub mod classification;
 pub mod service_detection;
+pub mod snmp;
 
 pub use classification::{
     classify_device, ClassificationSignals, DeviceCategory, DeviceClassification,
@@ -17,6 +18,11 @@ use ipnet::IpNet;
 use std::{net::IpAddr, process::Stdio, str::FromStr, sync::Arc, time::Duration};
 
 use tokio::{process::Command, sync::Semaphore, task::JoinSet, time::timeout};
+
+use snmp::{
+    client::SnmpClientConfig, credentials::SnmpCredentials, discovery::discover_device,
+    interfaces::SnmpInterface, system::SnmpSystemInfo,
+};
 
 const MAX_SCAN_ADDRESSES: usize = 4096;
 const DEFAULT_CONCURRENCY: usize = 64;
@@ -40,7 +46,34 @@ pub struct DiscoveredDevice {
     pub classification_confidence: f32,
     pub classification_evidence: Vec<String>,
 
+    pub snmp_detected: bool,
+    pub snmp_version: Option<String>,
+    pub snmp_system: Option<SnmpSystemInfo>,
+    pub snmp_interfaces: Vec<SnmpInterface>,
+
     pub status: String,
+}
+
+/// Configuration for detailed network and optional SNMP discovery.
+#[derive(Clone)]
+pub struct DiscoveryOptions {
+    pub concurrency: usize,
+    pub probe_timeout: Duration,
+    pub snmp_credentials: Option<SnmpCredentials>,
+    pub snmp_client_config: SnmpClientConfig,
+    pub snmp_probe_timeout: Duration,
+}
+
+impl Default for DiscoveryOptions {
+    fn default() -> Self {
+        Self {
+            concurrency: DEFAULT_CONCURRENCY,
+            probe_timeout: DEFAULT_PROBE_TIMEOUT,
+            snmp_credentials: None,
+            snmp_client_config: SnmpClientConfig::default(),
+            snmp_probe_timeout: Duration::from_secs(8),
+        }
+    }
 }
 
 /// Errors returned by network discovery.
@@ -131,27 +164,63 @@ pub async fn scan_network_with_options(
 
 /// Performs detailed discovery and classifies responsive devices.
 pub async fn scan_network_detailed(cidr: &str) -> Result<Vec<DiscoveredDevice>, DiscoveryError> {
-    let discovered_ips = scan_network(cidr).await?;
+    scan_network_detailed_with_options(cidr, DiscoveryOptions::default()).await
+}
+
+/// Performs detailed discovery with optional authenticated SNMP collection.
+///
+/// SNMP probing is disabled unless credentials are explicitly supplied.
+pub async fn scan_network_detailed_with_options(
+    cidr: &str,
+    options: DiscoveryOptions,
+) -> Result<Vec<DiscoveredDevice>, DiscoveryError> {
+    let discovered_ips =
+        scan_network_with_options(cidr, options.concurrency, options.probe_timeout).await?;
 
     let default_gateway = lookup_default_gateway().await;
-
     let mut tasks = JoinSet::new();
 
     for ip in discovered_ips {
         let is_default_gateway = default_gateway == Some(ip);
+        let snmp_credentials = options.snmp_credentials.clone();
+        let snmp_client_config = options.snmp_client_config.clone();
+        let snmp_probe_timeout = options.snmp_probe_timeout;
 
         tasks.spawn(async move {
-            // Collect device information concurrently.
-            let (mac_address, hostname, detected_services) = tokio::join!(
+            let snmp_probe = async {
+                match snmp_credentials {
+                    Some(credentials) => timeout(
+                        snmp_probe_timeout,
+                        discover_device(ip, &credentials, snmp_client_config),
+                    )
+                    .await
+                    .ok()
+                    .and_then(Result::ok),
+                    None => None,
+                }
+            };
+
+            let (mac_address, reverse_hostname, detected_services, snmp_result) = tokio::join!(
                 lookup_mac_address(ip),
                 lookup_hostname(ip),
                 detect_tcp_services(ip),
+                snmp_probe,
             );
 
-            // Identify MAC address type.
-            let mac_address_type = mac_address.as_deref().map(classify_mac);
+            let snmp_detected = snmp_result.as_ref().is_some_and(|result| result.detected);
+            let snmp_version = snmp_result
+                .as_ref()
+                .and_then(|result| result.version.clone());
+            let snmp_system = snmp_result.as_ref().map(|result| result.system.clone());
+            let snmp_interfaces = snmp_result
+                .as_ref()
+                .map(|result| result.interfaces.clone())
+                .unwrap_or_default();
 
-            // Identify manufacturer using IEEE registry.
+            let hostname = reverse_hostname
+                .or_else(|| snmp_system.as_ref().and_then(|system| system.name.clone()));
+
+            let mac_address_type = mac_address.as_deref().map(classify_mac);
             let manufacturer = match mac_address.as_deref() {
                 Some(mac) => lookup_mac_vendor(mac)
                     .ok()
@@ -160,21 +229,17 @@ pub async fn scan_network_detailed(cidr: &str) -> Result<Vec<DiscoveredDevice>, 
                 None => None,
             };
 
-            // Extract open TCP ports for classification.
             let open_ports: Vec<u16> = detected_services
                 .iter()
                 .map(|service| service.port)
                 .collect();
 
-            // Build classification signals.
-            // SNMP, LLDP and endpoint-agent collectors
-            // are not implemented yet.
             let signals = ClassificationSignals {
                 hostname: hostname.clone(),
                 manufacturer: manufacturer.clone(),
                 is_default_gateway,
                 open_ports: open_ports.clone(),
-                snmp_detected: false,
+                snmp_detected,
                 lldp_detected: false,
                 endpoint_agent_detected: false,
             };
@@ -187,21 +252,21 @@ pub async fn scan_network_detailed(cidr: &str) -> Result<Vec<DiscoveredDevice>, 
                 hostname,
                 manufacturer,
                 mac_address_type,
-
                 open_ports,
                 detected_services,
-
                 device_category: classification.category,
                 classification_confidence: classification.confidence,
                 classification_evidence: classification.evidence,
-
+                snmp_detected,
+                snmp_version,
+                snmp_system,
+                snmp_interfaces,
                 status: "online".to_string(),
             }
         });
     }
 
     let mut devices = Vec::new();
-
     while let Some(result) = tasks.join_next().await {
         if let Ok(device) = result {
             devices.push(device);
@@ -209,7 +274,6 @@ pub async fn scan_network_detailed(cidr: &str) -> Result<Vec<DiscoveredDevice>, 
     }
 
     devices.sort_by_key(|device| device.ip_address);
-
     Ok(devices)
 }
 
@@ -371,6 +435,10 @@ mod tests {
             device_category: DeviceCategory::Router,
             classification_confidence: 0.8,
             classification_evidence: vec!["Identified as the default network gateway".to_string()],
+            snmp_detected: false,
+            snmp_version: None,
+            snmp_system: None,
+            snmp_interfaces: Vec::new(),
             status: "online".to_string(),
         };
 
