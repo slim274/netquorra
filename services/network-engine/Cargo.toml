@@ -4,5 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-tokio = { version = "1", features = ["process", "time", "sync", "rt-multi-thread", "macros"] }
+tokio = { version = "1", features = ["process", "time", "sync", "rt-multi-thread", "macros", "net"] }
 ipnet = "2"
+serde = { version = "1", features = ["derive"] }
+csv = "1"

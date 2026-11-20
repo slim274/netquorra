@@ -1,8 +1,8 @@
 mod dashboard;
-mod sidebar;
-mod topbar;
 mod device_inventory;
 mod network_discovery;
+mod sidebar;
+mod topbar;
 
 pub use dashboard::Dashboard;
 pub use device_inventory::DeviceInventory;

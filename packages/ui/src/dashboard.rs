@@ -1,5 +1,5 @@
-use dioxus::prelude::*;
 use crate::{DeviceInventory, NetworkDiscovery};
+use dioxus::prelude::*;
 
 const DASHBOARD_CSS: Asset = asset!("/assets/dashboard.css");
 

@@ -1300,6 +1300,153 @@ button, input {
     cursor: not-allowed;
 }
 
+.discovery-mac {
+    font-family: monospace;
+    font-size: 11px !important;
+    color: var(--muted) !important;
+    white-space: nowrap;
+}
+
+.device-unknown {
+    color: var(--muted);
+    opacity: 0.7;
+    font-size: 11px;
+}
+
+.discovery-table td {
+    white-space: nowrap;
+}
+
+
+.discovery-mac-type {
+    display: inline-block;
+    font-size: 11px;
+    text-transform: capitalize;
+    color: var(--cyan);
+    white-space: nowrap;
+}
+
+/* Device classification */
+
+.device-category {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 6px;
+    background: rgba(33, 200, 223, 0.10);
+    color: var(--cyan);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.device-category.router,
+.device-category.firewall {
+    color: var(--green);
+    background: rgba(32, 201, 151, 0.10);
+}
+
+.device-category.server {
+    color: var(--blue);
+    background: rgba(57, 120, 246, 0.12);
+}
+
+.device-category.printer {
+    color: var(--yellow);
+    background: rgba(245, 185, 66, 0.10);
+}
+
+.device-category.unknown {
+    color: var(--muted);
+    background: rgba(129, 147, 170, 0.10);
+}
+
+.classification-confidence {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.classification-evidence {
+    color: var(--muted);
+    font-size: 11px;
+    min-width: 150px;
+    display: inline-block;
+    white-space: normal;
+    line-height: 1.5;
+}
+
+/* Device classification */
+
+.device-category {
+    display: inline-block;
+    padding: 5px 9px;
+    border-radius: 6px;
+    background: rgba(33, 200, 223, 0.10);
+    color: var(--cyan);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: capitalize;
+    white-space: nowrap;
+}
+
+.device-category.router,
+.device-category.firewall {
+    color: var(--green);
+    background: rgba(32, 201, 151, 0.10);
+}
+
+.device-category.server {
+    color: var(--blue);
+    background: rgba(57, 120, 246, 0.12);
+}
+
+.device-category.printer {
+    color: var(--yellow);
+    background: rgba(245, 185, 66, 0.10);
+}
+
+.device-category.unknown {
+    color: var(--muted);
+    background: rgba(129, 147, 170, 0.10);
+}
+
+.classification-confidence {
+    color: var(--text);
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.classification-evidence {
+    color: var(--muted);
+    font-size: 11px;
+    min-width: 150px;
+    display: inline-block;
+    white-space: normal;
+    line-height: 1.5;
+}
+
+/* TCP service detection */
+
+.detected-services {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-width: 150px;
+}
+
+.service-badge {
+    display: inline-block;
+    padding: 4px 7px;
+    border-radius: 5px;
+    background: rgba(33, 200, 223, 0.10);
+    color: var(--cyan);
+    font-size: 10px;
+    font-weight: 600;
+    white-space: nowrap;
+}
 /* MOBILE RESPONSIVENESS */
 @media (max-width: 760px) {
     .discovery-form {
@@ -1333,3 +1480,168 @@ button, input {
     }
 }
 
+
+
+/* =====================================
+   NETWORK DISCOVERY TABLE — RESPONSIVE
+   Keep IP and hostname visible while
+   allowing the remaining columns to scroll.
+===================================== */
+
+.discovery-results {
+    min-width: 0;
+}
+
+.discovery-table-wrapper {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: visible;
+    direction: ltr;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    scrollbar-color: #34516f #0b1423;
+}
+
+.discovery-table-wrapper::-webkit-scrollbar {
+    height: 9px;
+}
+
+.discovery-table-wrapper::-webkit-scrollbar-track {
+    background: #0b1423;
+    border-radius: 8px;
+}
+
+.discovery-table-wrapper::-webkit-scrollbar-thumb {
+    background: #34516f;
+    border-radius: 8px;
+}
+
+.discovery-table {
+    width: max-content;
+    min-width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    table-layout: auto;
+    text-align: left;
+}
+
+/* Stable widths for the two key identity columns */
+.discovery-table th:nth-child(1),
+.discovery-table td:nth-child(1) {
+    min-width: 125px;
+    width: 125px;
+}
+
+.discovery-table th:nth-child(2),
+.discovery-table td:nth-child(2) {
+    min-width: 155px;
+    width: 155px;
+}
+
+/* Keep IP address and hostname visible during horizontal scrolling */
+.discovery-table th:nth-child(1),
+.discovery-table td:nth-child(1) {
+    position: sticky;
+    left: 0;
+    z-index: 3;
+    background: #101d30;
+}
+
+.discovery-table th:nth-child(2),
+.discovery-table td:nth-child(2) {
+    position: sticky;
+    left: 125px;
+    z-index: 2;
+    background: #101d30;
+    box-shadow: 5px 0 8px -7px rgba(0, 0, 0, 0.9);
+}
+
+/* Sticky headers sit above sticky body cells */
+.discovery-table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 4;
+    background: #0d192a;
+}
+
+.discovery-table thead th:nth-child(1) {
+    z-index: 6;
+    background: #0d192a;
+}
+
+.discovery-table thead th:nth-child(2) {
+    z-index: 5;
+    background: #0d192a;
+}
+
+.discovery-table tbody tr:hover td {
+    background-color: #14243a;
+}
+
+.discovery-table tbody tr:hover td:nth-child(1),
+.discovery-table tbody tr:hover td:nth-child(2) {
+    background-color: #14243a;
+}
+
+.discovery-table th,
+.discovery-table td {
+    vertical-align: middle;
+}
+
+.discovery-table td.discovery-ip {
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;
+}
+
+.discovery-table .classification-evidence {
+    min-width: 170px;
+    max-width: 230px;
+    white-space: normal;
+    overflow-wrap: anywhere;
+}
+
+/* Prevent the discovery panel from forcing the whole page wider */
+.discovery-panel.discovery-results {
+    min-width: 0;
+    max-width: 100%;
+}
+
+@media (max-width: 760px) {
+    .discovery-page {
+        min-width: 0;
+        padding: 18px 12px;
+    }
+
+    .discovery-panel.discovery-results {
+        padding: 16px 12px;
+    }
+
+    .discovery-table {
+        min-width: 1200px;
+    }
+
+    .discovery-table th,
+    .discovery-table td {
+        padding: 13px 11px;
+    }
+
+    .discovery-table th:nth-child(1),
+    .discovery-table td:nth-child(1) {
+        min-width: 118px;
+        width: 118px;
+    }
+
+    .discovery-table th:nth-child(2),
+    .discovery-table td:nth-child(2) {
+        min-width: 145px;
+        width: 145px;
+    }
+
+    .discovery-table th:nth-child(2),
+    .discovery-table td:nth-child(2) {
+        left: 118px;
+    }
+}

@@ -4,7 +4,7 @@ use axum::{
     routing::{get, post},
     Json, Router,
 };
-use network_engine::scan_network;
+use network_engine::scan_network_detailed;
 use serde::{Deserialize, Serialize};
 use std::{env, net::SocketAddr, sync::Arc};
 
@@ -22,7 +22,7 @@ struct ScanResponse {
     status: String,
     network: String,
     discovered_count: usize,
-    discovered_devices: Vec<String>,
+    discovered_devices: Vec<network_engine::DiscoveredDevice>,
 }
 
 #[derive(Serialize)]
@@ -42,11 +42,13 @@ async fn scan(
     headers: HeaderMap,
     Json(request): Json<ScanRequest>,
 ) -> Result<Json<ScanResponse>, (StatusCode, Json<ApiError>)> {
+    // Authenticate request
     let authorized = headers
         .get("authorization")
         .and_then(|value| value.to_str().ok())
         .map(|value| {
-            value.strip_prefix("Bearer ")
+            value
+                .strip_prefix("Bearer ")
                 .map(|provided| provided == token.as_str())
                 .unwrap_or(false)
         })
@@ -61,6 +63,7 @@ async fn scan(
         ));
     }
 
+    // Validate network range
     let cidr = request.cidr.trim();
 
     if cidr.is_empty() {
@@ -72,7 +75,8 @@ async fn scan(
         ));
     }
 
-    let devices = scan_network(cidr).await.map_err(|error| {
+    // Perform detailed network discovery
+    let discovered_devices = scan_network_detailed(cidr).await.map_err(|error| {
         (
             StatusCode::BAD_REQUEST,
             Json(ApiError {
@@ -81,21 +85,20 @@ async fn scan(
         )
     })?;
 
-    let discovered_devices: Vec<String> =
-        devices.iter().map(|ip| ip.to_string()).collect();
+    let discovered_count = discovered_devices.len();
 
     Ok(Json(ScanResponse {
         status: "completed".to_string(),
         network: cidr.to_string(),
-        discovered_count: discovered_devices.len(),
+        discovered_count,
         discovered_devices,
     }))
 }
 
 #[tokio::main]
 async fn main() {
-    let token = env::var("NETQUORRA_AGENT_TOKEN")
-        .expect("NETQUORRA_AGENT_TOKEN must be configured");
+    let token =
+        env::var("NETQUORRA_AGENT_TOKEN").expect("NETQUORRA_AGENT_TOKEN must be configured");
 
     if token.len() < 32 {
         panic!("NETQUORRA_AGENT_TOKEN must contain at least 32 characters");

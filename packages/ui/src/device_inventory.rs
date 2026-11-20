@@ -105,16 +105,13 @@ pub fn DeviceInventory() -> Element {
         .into_iter()
         .enumerate()
         .filter(|(_, device)| {
-            let matches_search =
-                device.name.to_lowercase().contains(&query)
+            let matches_search = device.name.to_lowercase().contains(&query)
                 || device.hostname.to_lowercase().contains(&query)
                 || device.ip.to_lowercase().contains(&query);
 
-            let matches_status =
-                status_filter() == "All" || device.status == status_filter();
+            let matches_status = status_filter() == "All" || device.status == status_filter();
 
-            let matches_type =
-                type_filter() == "All" || device.device_type == type_filter();
+            let matches_type = type_filter() == "All" || device.device_type == type_filter();
 
             matches_search && matches_status && matches_type
         })
