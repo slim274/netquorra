@@ -162,6 +162,15 @@ pub async fn get_interfaces(client: &UdpClient) -> Result<Vec<SnmpInterface>, St
     }
 
     let mut result: Vec<_> = interfaces.into_values().collect();
+
+    // ifName is not implemented by every SNMP agent. Use ifDescr as a
+    // readable fallback while preserving the original description field.
+    for interface in &mut result {
+        if interface.name.is_none() {
+            interface.name = interface.description.clone();
+        }
+    }
+
     result.sort_by_key(|interface| interface.index);
 
     Ok(result)
